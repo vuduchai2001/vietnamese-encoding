@@ -237,6 +237,93 @@ label {
   font-weight: 500;
 }
 
+/* Translation Layout - 2 sides */
+.translation-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+}
+
+.translation-side {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.side-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.side-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #333;
+  font-weight: 600;
+}
+
+.vietnamese-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.chinese-input {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Encoding Converter Row (GBK/Windows-1252/UTF-8) */
+.encoding-converter-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 20px;
+}
+
+.encoding-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.encoding-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.encoding-header label {
+  margin-bottom: 0;
+  font-weight: 600;
+  color: #555;
+  font-size: 14px;
+}
+
+.encoding-select {
+  padding: 6px 12px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  background-color: white;
+  color: #333;
+  cursor: pointer;
+  transition: border-color 0.3s;
+}
+
+.encoding-select:focus {
+  outline: none;
+  border-color: rgba(0, 0, 0, 0.4);
+}
+
+.encoding-select:hover {
+  border-color: rgba(0, 0, 0, 0.3);
+}
+
 /* Responsive design */
 @media (max-width: 1200px) {
   .main-content {
@@ -245,6 +332,14 @@ label {
 
   .history-section {
     max-height: 400px;
+  }
+
+  .encoding-converter-row {
+    grid-template-columns: 1fr;
+  }
+
+  .translation-layout {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -273,6 +368,20 @@ label {
   }
 
   .translate-btn {
+    width: 100%;
+  }
+
+  .encoding-converter-row {
+    grid-template-columns: 1fr;
+  }
+
+  .encoding-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .encoding-select {
     width: 100%;
   }
 }

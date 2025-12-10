@@ -1,5 +1,5 @@
 # Build stage
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
@@ -7,19 +7,17 @@ WORKDIR /app
 COPY package.json yarn.lock* package-lock.json* ./
 
 # Install dependencies
-RUN if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
-    elif [ -f package-lock.json ]; then npm ci; \
-    else echo "Lockfile not found." && exit 1; \
-    fi
-
+RUN yarn install
 # Copy source code
 COPY . .
 
 # Build the application
-RUN npm run build
+RUN yarn run build
 
 # Production stage
 FROM nginx:alpine
+
+RUN rm -rf /etc/nginx/conf.d/default.conf
 
 # Copy custom nginx config
 COPY nginx.conf /etc/nginx/conf.d/default.conf

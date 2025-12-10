@@ -1,172 +1,233 @@
 import { useState } from 'react'
 import './App.css'
-import { convertTcvn3ToUnicode, convertUnicodeToTcvn3 } from './utils/converter'
+import { convertTcvn3ToUnicode, convertUnicodeToTcvn3, translateChineseToVietnamese, translateVietnameseToChinese } from './utils/converter'
 
 function App() {
-  // Top section: TCVN3 to Unicode
-  const [tcvn3Input, setTcvn3Input] = useState('')
-  const [unicodeOutput, setUnicodeOutput] = useState('')
-
-  // Bottom section: Unicode to TCVN3
-  const [unicodeInput, setUnicodeInput] = useState('')
-  const [tcvn3Output, setTcvn3Output] = useState('')
-
   // Translation history
   const [history, setHistory] = useState([])
 
-  // Handle TCVN3 input change (no auto-convert)
-  const handleTcvn3InputChange = (e) => {
-    setTcvn3Input(e.target.value)
+  // Chinese-Vietnamese Translation & Encoding Converter
+  const [chineseText, setChineseText] = useState('')
+  const [vietnameseUtf8, setVietnameseUtf8] = useState('')
+  const [vietnameseTcvn3, setVietnameseTcvn3] = useState('')
+  const [isTranslating, setIsTranslating] = useState(false)
+
+
+  // Handle Chinese text input change (no auto-translate)
+  const handleChineseTextChange = (e) => {
+    const value = e.target.value
+    setChineseText(value)
   }
 
-  // Handle Enter key in TCVN3 input (Enter to translate, Shift+Enter for new line)
-  const handleTcvn3InputKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleTranslateTcvn3ToUnicode()
+  // Handle Vietnamese UTF-8 input change (no auto-translate)
+  const handleVietnameseUtf8Change = (e) => {
+    const value = e.target.value
+    setVietnameseUtf8(value)
+    
+    // Auto convert UTF-8 to TCVN3
+    if (value.trim()) {
+      const tcvn3Result = convertUnicodeToTcvn3(value)
+      setVietnameseTcvn3(tcvn3Result)
+    } else {
+      setVietnameseTcvn3('')
     }
   }
 
-  // Handle Unicode output change (allow editing)
-  const handleUnicodeOutputChange = (e) => {
-    setUnicodeOutput(e.target.value)
-  }
-
-  // Handle Unicode input change (no auto-convert)
-  const handleUnicodeInputChange = (e) => {
-    setUnicodeInput(e.target.value)
-  }
-
-  // Handle Enter key in Unicode input (Enter to translate, Shift+Enter for new line)
-  const handleUnicodeInputKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleTranslateUnicodeToTcvn3()
+  // Handle Vietnamese TCVN3 input change (no auto-translate)
+  const handleVietnameseTcvn3Change = (e) => {
+    const value = e.target.value
+    setVietnameseTcvn3(value)
+    
+    // Auto convert TCVN3 to UTF-8
+    if (value.trim()) {
+      const utf8Result = convertTcvn3ToUnicode(value)
+      setVietnameseUtf8(utf8Result)
+    } else {
+      setVietnameseUtf8('')
     }
   }
 
-  // Handle TCVN3 output change (allow editing)
-  const handleTcvn3OutputChange = (e) => {
-    setTcvn3Output(e.target.value)
+  // Translate from Chinese to Vietnamese
+  const handleTranslateFromChinese = async () => {
+    if (isTranslating || !chineseText.trim()) return
+    
+    setIsTranslating(true)
+    try {
+      // Translate Chinese to Vietnamese UTF-8
+      const vietnameseUtf8Result = await translateChineseToVietnamese(chineseText)
+      setVietnameseUtf8(vietnameseUtf8Result)
+      // Convert UTF-8 to TCVN3
+      const vietnameseTcvn3Result = convertUnicodeToTcvn3(vietnameseUtf8Result)
+      setVietnameseTcvn3(vietnameseTcvn3Result)
+      
+      // Add to history
+      setHistory(prev => [
+        {
+          id: Date.now(),
+          type: 'chinese-vietnamese',
+          chinese: chineseText,
+          vietnameseUtf8: vietnameseUtf8Result,
+          vietnameseTcvn3: vietnameseTcvn3Result,
+          timestamp: new Date().toLocaleTimeString('vi-VN')
+        },
+        ...prev
+      ])
+    } catch (error) {
+      console.error('Translation error:', error)
+    } finally {
+      setIsTranslating(false)
+    }
   }
 
-  // Translate TCVN3 to Unicode
-  const handleTranslateTcvn3ToUnicode = () => {
-    if (!tcvn3Input.trim()) return
+  // Translate from Vietnamese to Chinese
+  const handleTranslateFromVietnamese = async () => {
+    if (isTranslating) return
     
-    const result = convertTcvn3ToUnicode(tcvn3Input)
-    setUnicodeOutput(result)
+    // Determine which Vietnamese field to use
+    let vietnameseSource = ''
+    if (vietnameseTcvn3.trim()) {
+      // Convert TCVN3 to UTF-8 first
+      vietnameseSource = convertTcvn3ToUnicode(vietnameseTcvn3)
+      setVietnameseUtf8(vietnameseSource)
+    } else if (vietnameseUtf8.trim()) {
+      vietnameseSource = vietnameseUtf8
+    } else {
+      return
+    }
     
-    // Add to history
-    setHistory(prev => [
-      {
-        id: Date.now(),
-        type: 'tcvn3-to-unicode',
-        input: tcvn3Input,
-        output: result,
-        timestamp: new Date().toLocaleTimeString('vi-VN')
-      },
-      ...prev
-    ])
+    if (!vietnameseSource.trim()) return
+    
+    setIsTranslating(true)
+    try {
+      // Translate Vietnamese UTF-8 to Chinese
+      const chineseResult = await translateVietnameseToChinese(vietnameseSource)
+      setChineseText(chineseResult)
+      
+      // Ensure TCVN3 is synced
+      if (vietnameseTcvn3.trim()) {
+        // Keep existing TCVN3
+      } else {
+        const tcvn3Result = convertUnicodeToTcvn3(vietnameseSource)
+        setVietnameseTcvn3(tcvn3Result)
+      }
+      
+      // Add to history
+      setHistory(prev => [
+        {
+          id: Date.now(),
+          type: 'chinese-vietnamese',
+          chinese: chineseResult,
+          vietnameseUtf8: vietnameseSource,
+          vietnameseTcvn3: vietnameseTcvn3.trim() ? vietnameseTcvn3 : convertUnicodeToTcvn3(vietnameseSource),
+          timestamp: new Date().toLocaleTimeString('vi-VN')
+        },
+        ...prev
+      ])
+    } catch (error) {
+      console.error('Translation error:', error)
+    } finally {
+      setIsTranslating(false)
+    }
   }
 
-  // Translate Unicode to TCVN3
-  const handleTranslateUnicodeToTcvn3 = () => {
-    if (!unicodeInput.trim()) return
-    
-    const result = convertUnicodeToTcvn3(unicodeInput)
-    setTcvn3Output(result)
-    
-    // Add to history
-    setHistory(prev => [
-      {
-        id: Date.now() + 1,
-        type: 'unicode-to-tcvn3',
-        input: unicodeInput,
-        output: result,
-        timestamp: new Date().toLocaleTimeString('vi-VN')
-      },
-      ...prev
-    ])
+  // Handle Enter key - translate based on focused field
+  const handleKeyDown = (e, field) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      if (field === 'chinese') {
+        handleTranslateFromChinese()
+      } else if (field === 'vietnameseUtf8' || field === 'vietnameseTcvn3') {
+        handleTranslateFromVietnamese()
+      }
+    }
   }
 
   return (
     <div className="app">
       <div className="container">
-        <h1>Chuyển đổi TCVN3 ↔ Unicode</h1>
+        <h1>Dịch tiếng Trung ↔ Tiếng Việt</h1>
         
         <div className="main-content">
           <div className="converter-sections">
-            {/* Top Section: TCVN3 to Unicode */}
+            {/* Chinese-Vietnamese Translation & Encoding Converter */}
             <div className="converter-section">
               <div className="section-header">
-                <h2>TCVN3 → Unicode</h2>
+                <h2>Dịch tiếng Trung ↔ Tiếng Việt</h2>
+                {isTranslating && (
+                  <span style={{ color: '#4a90e2', fontSize: '14px' }}>Đang dịch...</span>
+                )}
               </div>
               
-              <div className="input-pair">
-                <div className="input-group">
-                  <label>TCVN3</label>
-                  <textarea
-                    className="input-field"
-                    value={tcvn3Input}
-                    onChange={handleTcvn3InputChange}
-                    onKeyDown={handleTcvn3InputKeyDown}
-                    placeholder="Nhập văn bản TCVN3..."
-                  />
-                  <button 
-                    className="translate-btn"
-                    onClick={handleTranslateTcvn3ToUnicode}
-                    disabled={!tcvn3Input.trim()}
-                  >
-                    Dịch
-                  </button>
+              <div className="translation-layout">
+                {/* Left side: Vietnamese */}
+                <div className="translation-side">
+                  <div className="side-header">
+                    <h3>Tiếng Việt</h3>
+                    <button 
+                      className="translate-btn"
+                      onClick={handleTranslateFromVietnamese}
+                      disabled={(!vietnameseUtf8.trim() && !vietnameseTcvn3.trim()) || isTranslating}
+                    >
+                      {isTranslating ? 'Đang dịch...' : 'Dịch →'}
+                    </button>
+                  </div>
+                  
+                  <div className="vietnamese-inputs">
+                    <div className="encoding-input-group">
+                      <div className="encoding-header">
+                        <label>Tiếng Việt (Unicode)</label>
+                      </div>
+                      <textarea
+                        className="input-field"
+                        value={vietnameseUtf8}
+                        onChange={handleVietnameseUtf8Change}
+                        onKeyDown={(e) => handleKeyDown(e, 'vietnameseUtf8')}
+                        placeholder="Nhập văn bản tiếng Việt Unicode..."
+                      />
+                    </div>
+                    
+                    <div className="encoding-input-group">
+                      <div className="encoding-header">
+                        <label>Tiếng Việt (TCVN3)</label>
+                      </div>
+                      <textarea
+                        className="input-field"
+                        value={vietnameseTcvn3}
+                        onChange={handleVietnameseTcvn3Change}
+                        onKeyDown={(e) => handleKeyDown(e, 'vietnameseTcvn3')}
+                        placeholder="Nhập văn bản tiếng Việt TCVN3..."
+                      />
+                    </div>
+                  </div>
                 </div>
                 
-                <div className="input-group">
-                  <label>Unicode</label>
-                  <textarea
-                    className="input-field"
-                    value={unicodeOutput}
-                    onChange={handleUnicodeOutputChange}
-                    placeholder="Kết quả Unicode sẽ hiển thị ở đây..."
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Bottom Section: Unicode to TCVN3 */}
-            <div className="converter-section">
-              <div className="section-header">
-                <h2>Unicode → TCVN3</h2>
-              </div>
-              
-              <div className="input-pair">
-                <div className="input-group">
-                  <label>Unicode</label>
-                  <textarea
-                    className="input-field"
-                    value={unicodeInput}
-                    onChange={handleUnicodeInputChange}
-                    onKeyDown={handleUnicodeInputKeyDown}
-                    placeholder="Nhập văn bản Unicode..."
-                  />
-                  <button 
-                    className="translate-btn"
-                    onClick={handleTranslateUnicodeToTcvn3}
-                    disabled={!unicodeInput.trim()}
-                  >
-                    Dịch
-                  </button>
-                </div>
-                
-                <div className="input-group">
-                  <label>TCVN3</label>
-                  <textarea
-                    className="input-field"
-                    value={tcvn3Output}
-                    onChange={handleTcvn3OutputChange}
-                    placeholder="Kết quả TCVN3 sẽ hiển thị ở đây..."
-                  />
+                {/* Right side: Chinese */}
+                <div className="translation-side">
+                  <div className="side-header">
+                    <h3>Tiếng Trung</h3>
+                    <button 
+                      className="translate-btn"
+                      onClick={handleTranslateFromChinese}
+                      disabled={!chineseText.trim() || isTranslating}
+                    >
+                      {isTranslating ? 'Đang dịch...' : '← Dịch'}
+                    </button>
+                  </div>
+                  
+                  <div className="chinese-input">
+                    <div className="encoding-input-group">
+                      <div className="encoding-header">
+                        <label>Tiếng Trung</label>
+                      </div>
+                      <textarea
+                        className="input-field"
+                        value={chineseText}
+                        onChange={handleChineseTextChange}
+                        onKeyDown={(e) => handleKeyDown(e, 'chinese')}
+                        placeholder="Nhập văn bản tiếng Trung..."
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -185,16 +246,19 @@ function App() {
                   <div key={item.id} className="history-item">
                     <div className="history-header">
                       <span className="history-type">
-                        {item.type === 'tcvn3-to-unicode' ? 'TCVN3 → Unicode' : 'Unicode → TCVN3'}
+                        Tiếng Trung ↔ Tiếng Việt
                       </span>
                       <span className="history-time">{item.timestamp}</span>
                     </div>
                     <div className="history-content">
                       <div className="history-input">
-                        <strong>Input:</strong> {item.input}
+                        <strong>Tiếng Trung:</strong> {item.chinese || '(trống)'}
                       </div>
                       <div className="history-output">
-                        <strong>Output:</strong> {item.output}
+                        <strong>Tiếng Việt (Unicode):</strong> {item.vietnameseUtf8 || '(trống)'}
+                      </div>
+                      <div className="history-output">
+                        <strong>Tiếng Việt (TCVN3):</strong> {item.vietnameseTcvn3 || '(trống)'}
                       </div>
                     </div>
                   </div>

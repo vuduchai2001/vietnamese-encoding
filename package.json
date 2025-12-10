@@ -8,6 +8,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "buffer": "^6.0.3",
+    "iconv-lite": "^0.7.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "vietnamese-conversion": "^2.0.0"
